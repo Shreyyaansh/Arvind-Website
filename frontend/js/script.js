@@ -1,5 +1,4 @@
-// Frontend script copied from current version
-// Configure API base: set `window.__API_BASE__` in `index.html` when frontend
+// Configure API base: set `window.__API_BASE__` via config.js when frontend
 // is deployed separately. Default is '' (same-origin relative paths).
 let API_BASE = (window && window.__API_BASE__) || '';
 // Normalize API_BASE: if user provided only a hostname, prefix https://
@@ -11,10 +10,9 @@ if (API_BASE) {
         API_BASE = API_BASE.replace(/\/+$/, '');
     }
 }
+// Make API_BASE globally accessible for admin.js
+window.API_BASE = API_BASE;
 
-// Debug logging
-console.log('[API Config] window.__API_BASE__:', window.__API_BASE__);
-console.log('[API Config] Final API_BASE:', API_BASE || '(empty - will use relative paths)');
 
 // Sample product data (used as fallback if API unavailable)
 let products = [

@@ -34,3 +34,47 @@ header { background-color: #2c3e50; color: white; padding: 1rem 0; text-align: c
 .submit-btn { width: 100%; padding: 1rem; background-color: #2c3e50; color: white; border: none; border-radius: 4px; font-size: 1rem; cursor: pointer; transition: background-color .3s; }
 .submit-btn:hover { background-color: #1a252f; }
 @media (max-width: 768px) { .product-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); } .product-details { width: 100%; max-width: 100%; } }
+
+/* Admin Panel Styles */
+.admin-panel { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.8); z-index: 3000; }
+.admin-panel.active { display: block; }
+.admin-password-modal { display: flex; justify-content: center; align-items: center; width: 100%; height: 100%; }
+.admin-password-content { background: white; padding: 2rem; border-radius: 8px; width: 100%; max-width: 400px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3); }
+.admin-password-content h2 { margin-bottom: 1rem; color: #2c3e50; }
+.admin-password-content p { margin-bottom: 0.5rem; color: #666; }
+.admin-password-content input { width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem; margin-bottom: 1rem; }
+.admin-password-actions { display: flex; gap: 1rem; }
+.admin-btn { flex: 1; padding: 0.75rem; background-color: #2c3e50; color: white; border: none; border-radius: 4px; font-size: 1rem; cursor: pointer; transition: background-color 0.3s; }
+.admin-btn:hover { background-color: #1a252f; }
+.admin-btn-secondary { background-color: #95a5a6; }
+.admin-btn-secondary:hover { background-color: #7f8c8d; }
+.admin-error { color: #e74c3c; font-size: 0.9rem; margin-top: 0.5rem; min-height: 1.2rem; }
+.admin-content { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 1200px; max-height: 90vh; background: white; border-radius: 8px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3); display: flex; flex-direction: column; }
+.admin-header { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem; border-bottom: 1px solid #ddd; background-color: #2c3e50; color: white; border-radius: 8px 8px 0 0; }
+.admin-header h2 { margin: 0; }
+.admin-close-btn { background: none; border: none; color: white; font-size: 2rem; cursor: pointer; padding: 0; width: 30px; height: 30px; line-height: 1; }
+.admin-close-btn:hover { opacity: 0.7; }
+.admin-body { padding: 1.5rem; overflow-y: auto; flex: 1; }
+.admin-section { margin-bottom: 2rem; }
+.admin-section h3 { margin-bottom: 1rem; color: #2c3e50; }
+.admin-product-item { background: #f8f9fa; border: 1px solid #ddd; border-radius: 8px; padding: 1.5rem; margin-bottom: 1rem; }
+.admin-product-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+.admin-product-header h4 { margin: 0; color: #2c3e50; }
+.admin-product-price { font-weight: bold; color: #27ae60; font-size: 1.1rem; }
+.admin-variants { margin-top: 1rem; }
+.admin-variant-item { display: flex; align-items: center; gap: 1rem; padding: 0.75rem; background: white; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 0.5rem; }
+.admin-variant-info { flex: 1; }
+.admin-variant-info strong { color: #2c3e50; }
+.admin-variant-stock { display: flex; align-items: center; gap: 0.5rem; }
+.admin-variant-stock input { width: 80px; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; text-align: center; }
+.admin-variant-stock button { padding: 0.5rem 1rem; background-color: #27ae60; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9rem; }
+.admin-variant-stock button:hover { background-color: #229954; }
+.admin-variant-stock button:disabled { background-color: #95a5a6; cursor: not-allowed; }
+.admin-save-status { display: inline-block; margin-left: 0.5rem; font-size: 0.9rem; }
+.admin-save-status.success { color: #27ae60; }
+.admin-save-status.error { color: #e74c3c; }
+@media (max-width: 768px) {
+    .admin-content { width: 95%; max-height: 95vh; }
+    .admin-variant-item { flex-direction: column; align-items: stretch; }
+    .admin-variant-stock { justify-content: space-between; }
+}

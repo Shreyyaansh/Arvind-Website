@@ -5,8 +5,7 @@ const mongoose = require('mongoose');
 const nodemailer = require('nodemailer');
 
 const app = express();
-// CORS: allow frontend origin(s) - support multiple origins separated by comma
-// If FRONTEND_URL is not set, allow all origins (useful for development and separate deployments)
+// CORS configuration
 const FRONTEND_URL = process.env.FRONTEND_URL || process.env.FRONTEND_ORIGIN || '';
 const allowedOrigins = FRONTEND_URL 
   ? FRONTEND_URL.split(',').map(url => url.trim()).filter(url => url)
@@ -15,7 +14,6 @@ const allowedOrigins = FRONTEND_URL
 const corsOptions = allowedOrigins.length > 0
   ? {
       origin: (origin, callback) => {
-        // Allow requests with no origin (like mobile apps or curl requests) or if origin is in allowed list
         if (!origin || allowedOrigins.includes(origin)) {
           callback(null, true);
         } else {
@@ -27,7 +25,6 @@ const corsOptions = allowedOrigins.length > 0
       optionsSuccessStatus: 200
     }
   : {
-      // Allow all origins if FRONTEND_URL is not set
       origin: true,
       credentials: true,
       optionsSuccessStatus: 200
@@ -37,13 +34,7 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Simple request logger for debugging in Vercel logs
-app.use((req, res, next) => {
-  console.log(`[Req] ${req.method} ${req.url}`);
-  next();
-});
-
-// ----- Mongo Connection -----
+// MongoDB Connection
 const mongoUri = process.env.MONGODB_URI;
 let mongoConnecting = null;
 async function ensureDb() {
@@ -67,7 +58,7 @@ async function ensureDb() {
   return mongoConnecting;
 }
 
-// ----- Schemas & Models -----
+// Schemas & Models
 const OrderSchema = new mongoose.Schema({
   productId: Number,
   productName: String,
@@ -100,14 +91,14 @@ const ProductSchema = new mongoose.Schema({
 
 const ProductModel = mongoose.models.Product || mongoose.model('Product', ProductSchema);
 
-// ----- Mail Transport -----
+// Mail Transport
 const SMTP_HOST = process.env.SMTP_HOST || process.env.MAIL_HOST;
 const SMTP_PORT = Number(process.env.SMTP_PORT || process.env.MAIL_PORT || 587);
 const SMTP_SECURE = String(process.env.SMTP_SECURE || '').toLowerCase() === 'true' || SMTP_PORT === 465;
 const SMTP_USER = process.env.SMTP_USER || process.env.MAIL_USER;
 const SMTP_PASS = process.env.SMTP_PASS || process.env.MAIL_PASS;
 const MAIL_FROM = process.env.MAIL_FROM || SMTP_USER;
-const ORDER_NOTIFY_TO = process.env.ORDER_NOTIFY_TO || process.env.MAIL_TO || 'orders@yourcompany.com';
+const ORDER_NOTIFY_TO = process.env.ORDER_NOTIFY_TO || process.env.MAIL_TO || '';
 
 let transporter = null;
 if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
@@ -122,7 +113,7 @@ if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
   console.warn('[WARN] Mail transport not configured.');
 }
 
-// ----- Seed Products -----
+// Seed Products
 async function seedProducts() {
   if (mongoose.connection.readyState !== 1) return;
   const count = await ProductModel.estimatedDocumentCount();
@@ -145,8 +136,7 @@ async function seedProducts() {
   console.log('[DB] Seeded products collection with', seed.length, 'items');
 }
 
-// ----- Routes -----
-// Root path handler
+// Routes
 app.get('/', async (req, res) => {
   await ensureDb();
   res.json({ ok: true, message: 'Arvind Fashion API', db: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected', mail: !!transporter });
@@ -254,7 +244,106 @@ app.post('/api/orders', async (req, res) => {
   }
 });
 
-// Global error handler (safer for serverless logs)
+// Admin Authentication Middleware
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+if (!ADMIN_PASSWORD) {
+  console.warn('[WARN] ADMIN_PASSWORD not set. Admin endpoints will be disabled.');
+}
+function verifyAdmin(req, res, next) {
+  if (!ADMIN_PASSWORD) {
+    return res.status(503).json({ ok: false, error: 'Admin functionality not configured' });
+  }
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ ok: false, error: 'Unauthorized' });
+  }
+  // Simple token verification - in production, use proper JWT or session management
+  const token = authHeader.substring(7);
+  try {
+    const decoded = Buffer.from(token, 'base64').toString('utf-8');
+    // Token format: password + timestamp
+    const password = decoded.substring(0, ADMIN_PASSWORD.length);
+    if (password === ADMIN_PASSWORD) {
+      return next();
+    }
+  } catch (e) {
+    // Invalid token
+  }
+  return res.status(401).json({ ok: false, error: 'Unauthorized' });
+}
+
+// Admin Routes
+app.get('/api/admin/products', verifyAdmin, async (req, res) => {
+  try {
+    await ensureDb();
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(500).json({ ok: false, error: 'Database not connected' });
+    }
+    const docs = await ProductModel.find({}).lean();
+    const products = docs.map((d) => ({
+      productId: d.productId,
+      name: d.name,
+      price: d.price,
+      image: d.image,
+      variants: d.variants.map(v => ({
+        ...v,
+        _id: v._id ? v._id.toString() : `${d.productId}-${v.size}-${v.color}`
+      }))
+    }));
+    res.json({ ok: true, products });
+  } catch (e) {
+    console.error('[API] /api/admin/products error:', e);
+    res.status(500).json({ ok: false, error: 'Failed to load products' });
+  }
+});
+
+app.put('/api/admin/products/:productId/variants', verifyAdmin, async (req, res) => {
+  try {
+    await ensureDb();
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(500).json({ ok: false, error: 'Database not connected' });
+    }
+    const productId = parseInt(req.params.productId);
+    const { size, color, stock } = req.body;
+    
+    if (!size || !color || stock === undefined) {
+      return res.status(400).json({ ok: false, error: 'Missing required fields: size, color, stock' });
+    }
+    
+    const stockNum = parseInt(stock);
+    if (isNaN(stockNum) || stockNum < 0) {
+      return res.status(400).json({ ok: false, error: 'Stock must be a non-negative number' });
+    }
+    
+    const product = await ProductModel.findOne({ productId }).lean();
+    if (!product) {
+      return res.status(404).json({ ok: false, error: 'Product not found' });
+    }
+    
+    const variantIndex = product.variants.findIndex(v => v.size === size && v.color === color);
+    if (variantIndex === -1) {
+      return res.status(404).json({ ok: false, error: 'Variant not found' });
+    }
+    
+    const updated = await ProductModel.findOneAndUpdate(
+      { productId, 'variants.size': size, 'variants.color': color },
+      { $set: { 'variants.$.stock': stockNum } },
+      { new: true }
+    ).lean();
+    
+    if (!updated) {
+      return res.status(500).json({ ok: false, error: 'Failed to update stock' });
+    }
+    
+    const updatedVariant = updated.variants.find(v => v.size === size && v.color === color);
+    res.json({ ok: true, variant: updatedVariant });
+  } catch (err) {
+    console.error('[API] /api/admin/products/:productId/variants error:', err);
+    res.status(500).json({ ok: false, error: 'Failed to update stock' });
+  }
+});
+
+// Global error handler
 app.use((err, req, res, next) => {
   console.error('[ERR] Unhandled error:', err && err.stack ? err.stack : err);
   res.status(500).json({ ok: false, error: 'Internal Server Error' });

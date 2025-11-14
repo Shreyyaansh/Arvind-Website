@@ -77,9 +77,39 @@
         </div>
     </div>
 
-    <!-- `config.js` is generated at build time and sets `window.__API_BASE__` -->
-    <!-- Load config.js synchronously before script.js -->
-    <script src="config.js" onerror="console.warn('[Config] config.js not found, API_BASE will be empty'); window.__API_BASE__ = window.__API_BASE__ || '';"></script>
+    <!-- Admin Panel -->
+    <div class="admin-panel" id="adminPanel">
+        <div class="admin-password-modal" id="adminPasswordModal">
+            <div class="admin-password-content">
+                <h2>Admin Access</h2>
+                <p>Enter admin password:</p>
+                <input type="password" id="adminPassword" placeholder="Password" autocomplete="off">
+                <div class="admin-password-actions">
+                    <button type="button" id="adminPasswordSubmit" class="admin-btn">Enter</button>
+                    <button type="button" id="adminPasswordCancel" class="admin-btn admin-btn-secondary">Cancel</button>
+                </div>
+                <p class="admin-error" id="adminPasswordError"></p>
+            </div>
+        </div>
+        <div class="admin-content" id="adminContent" style="display: none;">
+            <div class="admin-header">
+                <h2>Admin Panel</h2>
+                <button class="admin-close-btn" id="adminCloseBtn">&times;</button>
+            </div>
+            <div class="admin-body">
+                <div class="admin-section">
+                    <h3>Product Management</h3>
+                    <div class="admin-products" id="adminProducts">
+                        <p>Loading products...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- config.js is auto-generated at build time with API_BASE and ADMIN_PASSWORD -->
+    <script src="config.js" onerror="window.__API_BASE__ = window.__API_BASE__ || '';"></script>
     <script src="js/script.js"></script>
+    <script src="js/admin.js"></script>
 </body>
 </html>

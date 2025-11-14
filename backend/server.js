@@ -61,14 +61,14 @@ const ProductSchema = new mongoose.Schema({
 
 const ProductModel = mongoose.models.Product || mongoose.model('Product', ProductSchema);
 
-// Email transporter (supports SMTP_* or legacy MAIL_* env names)
+// Email transporter
 const SMTP_HOST = process.env.SMTP_HOST || process.env.MAIL_HOST;
 const SMTP_PORT = Number(process.env.SMTP_PORT || process.env.MAIL_PORT || 587);
 const SMTP_SECURE = String(process.env.SMTP_SECURE || '').toLowerCase() === 'true' || SMTP_PORT === 465;
 const SMTP_USER = process.env.SMTP_USER || process.env.MAIL_USER;
 const SMTP_PASS = process.env.SMTP_PASS || process.env.MAIL_PASS;
 const MAIL_FROM = process.env.MAIL_FROM || SMTP_USER;
-const ORDER_NOTIFY_TO = process.env.ORDER_NOTIFY_TO || process.env.MAIL_TO || 'orders@yourcompany.com';
+const ORDER_NOTIFY_TO = process.env.ORDER_NOTIFY_TO || process.env.MAIL_TO || '';
 
 let transporter = null;
 if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
@@ -277,11 +277,9 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Serve static frontend (../frontend)
+// Serve static frontend for local development
 const frontendDir = path.join(__dirname, '../frontend');
 app.use(express.static(frontendDir));
-
-// Fallback to index.html in frontend
 app.get('*', (req, res) => {
   res.sendFile(path.join(frontendDir, 'index.html'));
 });
