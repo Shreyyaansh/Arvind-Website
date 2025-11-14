@@ -77,8 +77,8 @@
         </div>
     </div>
 
-    <!-- Set this to your deployed backend base URL when frontend is hosted separately. Keep empty for same-origin ('' = relative). -->
-   <script>window.__API_BASE__ = 'arvind-backend.vercel.app';</script>
+    <!-- `config.js` is generated at build time and sets `window.__API_BASE__` -->
+    <script src="config.js"></script>
     <script src="js/script.js"></script>
 </body>
 </html>

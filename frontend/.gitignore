@@ -47,3 +47,4 @@ frontend/.env.*
 
 # Misc
 .sass-cache/
+config.js

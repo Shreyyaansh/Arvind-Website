@@ -1,7 +1,16 @@
 // Frontend script copied from current version
 // Configure API base: set `window.__API_BASE__` in `index.html` when frontend
 // is deployed separately. Default is '' (same-origin relative paths).
-const API_BASE = (window && window.__API_BASE__) || '';
+let API_BASE = (window && window.__API_BASE__) || '';
+// Normalize API_BASE: if user provided only a hostname, prefix https://
+if (API_BASE) {
+    API_BASE = String(API_BASE).trim();
+    if (!API_BASE.match(/^https?:\/\//)) {
+        API_BASE = 'https://' + API_BASE.replace(/^\/+|\/+$/g, '');
+    } else {
+        API_BASE = API_BASE.replace(/\/+$/, '');
+    }
+}
 
 // Sample product data (used as fallback if API unavailable)
 let products = [
@@ -235,8 +244,12 @@ checkoutForm.addEventListener('submit', async (e) => {
 
     try {
         const res = await fetch(`${API_BASE}/api/orders`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-        const data = await res.json();
-        if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to submit order');
+        let data = null;
+        try { data = await res.json(); } catch (e) { /* non-json response */ }
+        if (!res.ok || !data || !data.ok) {
+            console.error('Order submission response', { status: res.status, body: data });
+            throw new Error((data && data.error) || `Failed to submit order (status ${res.status})`);
+        }
         // Update stock from server response when available, otherwise decrement locally
         if (selectedVariant) {
             if (typeof data.newStock === 'number') {
