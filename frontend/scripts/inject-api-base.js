@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const apiBase = process.env.FRONTEND_API_BASE || '';
-const frontendDir = path.join(__dirname, '..', 'frontend');
+const frontendDir = path.join(__dirname, '..');
 const configPath = path.join(frontendDir, 'config.js');
 
 function normalize(v) {
@@ -14,9 +14,7 @@ function normalize(v) {
 }
 
 const normalized = normalize(apiBase);
-const content = `// Auto-generated at build time
-window.__API_BASE__ = ${JSON.stringify(normalized)};
-`;
+const content = `// Auto-generated at build time\nwindow.__API_BASE__ = ${JSON.stringify(normalized)};\n`;
 
 try {
   fs.writeFileSync(configPath, content, 'utf8');

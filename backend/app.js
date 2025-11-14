@@ -5,9 +5,43 @@ const mongoose = require('mongoose');
 const nodemailer = require('nodemailer');
 
 const app = express();
-app.use(cors());
+// CORS: allow frontend origin(s) - support multiple origins separated by comma
+// If FRONTEND_URL is not set, allow all origins (useful for development and separate deployments)
+const FRONTEND_URL = process.env.FRONTEND_URL || process.env.FRONTEND_ORIGIN || '';
+const allowedOrigins = FRONTEND_URL 
+  ? FRONTEND_URL.split(',').map(url => url.trim()).filter(url => url)
+  : [];
+
+const corsOptions = allowedOrigins.length > 0
+  ? {
+      origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps or curl requests) or if origin is in allowed list
+        if (!origin || allowedOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          console.warn(`[CORS] Blocked origin: ${origin}`);
+          callback(new Error('Not allowed by CORS'));
+        }
+      },
+      credentials: true,
+      optionsSuccessStatus: 200
+    }
+  : {
+      // Allow all origins if FRONTEND_URL is not set
+      origin: true,
+      credentials: true,
+      optionsSuccessStatus: 200
+    };
+
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Simple request logger for debugging in Vercel logs
+app.use((req, res, next) => {
+  console.log(`[Req] ${req.method} ${req.url}`);
+  next();
+});
 
 // ----- Mongo Connection -----
 const mongoUri = process.env.MONGODB_URI;
@@ -120,6 +154,10 @@ app.get('/api/health', async (req, res) => {
 app.get('/api/products', async (req, res) => {
   try {
     await ensureDb();
+    if (mongoose.connection.readyState !== 1) {
+      console.warn('[API] /api/products - DB not connected');
+      return res.status(500).json({ ok: false, error: 'Database not connected' });
+    }
     const docs = await ProductModel.find({}).lean();
     const products = docs.map((d) => ({ id: d.productId, name: d.name, price: d.price, image: d.image, variants: d.variants }));
     res.json({ ok: true, products });
@@ -132,6 +170,10 @@ app.get('/api/products', async (req, res) => {
 app.post('/api/orders', async (req, res) => {
   try {
     await ensureDb();
+    if (mongoose.connection.readyState !== 1) {
+      console.warn('[API] /api/orders - DB not connected');
+      return res.status(500).json({ ok: false, error: 'Database not connected' });
+    }
     const { productId, productName, size, color, quantity, employeeCode, name, email, phone } = req.body;
     const qty = Number(quantity);
 
@@ -204,6 +246,12 @@ app.post('/api/orders', async (req, res) => {
     console.error('[API] /api/orders error:', err);
     res.status(500).json({ ok: false, error: 'Failed to create order' });
   }
+});
+
+// Global error handler (safer for serverless logs)
+app.use((err, req, res, next) => {
+  console.error('[ERR] Unhandled error:', err && err.stack ? err.stack : err);
+  res.status(500).json({ ok: false, error: 'Internal Server Error' });
 });
 
 module.exports = app;

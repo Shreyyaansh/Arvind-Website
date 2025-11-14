@@ -1,7 +1,18 @@
 {
   "version": 2,
+  "functions": {
+    "api/[...all].js": {
+      "maxDuration": 30
+    }
+  },
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/", "destination": "/api/health" }
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/[...all]"
+    },
+    {
+      "source": "/",
+      "destination": "/api/health"
+    }
   ]
 }
