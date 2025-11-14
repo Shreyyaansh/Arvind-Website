@@ -78,7 +78,8 @@
     </div>
 
     <!-- `config.js` is generated at build time and sets `window.__API_BASE__` -->
-    <script src="config.js"></script>
+    <!-- Load config.js synchronously before script.js -->
+    <script src="config.js" onerror="console.warn('[Config] config.js not found, API_BASE will be empty'); window.__API_BASE__ = window.__API_BASE__ || '';"></script>
     <script src="js/script.js"></script>
 </body>
 </html>

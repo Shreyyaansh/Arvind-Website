@@ -146,6 +146,12 @@ async function seedProducts() {
 }
 
 // ----- Routes -----
+// Root path handler
+app.get('/', async (req, res) => {
+  await ensureDb();
+  res.json({ ok: true, message: 'Arvind Fashion API', db: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected', mail: !!transporter });
+});
+
 app.get('/api/health', async (req, res) => {
   await ensureDb();
   res.json({ ok: true, db: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected', mail: !!transporter });

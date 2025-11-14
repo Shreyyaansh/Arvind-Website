@@ -12,6 +12,10 @@ if (API_BASE) {
     }
 }
 
+// Debug logging
+console.log('[API Config] window.__API_BASE__:', window.__API_BASE__);
+console.log('[API Config] Final API_BASE:', API_BASE || '(empty - will use relative paths)');
+
 // Sample product data (used as fallback if API unavailable)
 let products = [
     {
