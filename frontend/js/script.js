@@ -1,4 +1,8 @@
 // Frontend script copied from current version
+// Configure API base: set `window.__API_BASE__` in `index.html` when frontend
+// is deployed separately. Default is '' (same-origin relative paths).
+const API_BASE = (window && window.__API_BASE__) || '';
+
 // Sample product data (used as fallback if API unavailable)
 let products = [
     {
@@ -96,7 +100,7 @@ function initializeProductGrid() {
 // Load products from backend before rendering
 async function loadProducts() {
     try {
-        const res = await fetch('/api/products');
+        const res = await fetch(`${API_BASE}/api/products`);
         if (res.ok) {
             const data = await res.json();
             if (data && data.ok && Array.isArray(data.products)) {
@@ -230,7 +234,7 @@ checkoutForm.addEventListener('submit', async (e) => {
     const originalText = submitBtn.textContent; submitBtn.disabled = true; submitBtn.textContent = 'Submitting...';
 
     try {
-        const res = await fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const res = await fetch(`${API_BASE}/api/orders`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
         const data = await res.json();
         if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to submit order');
         // Update stock from server response when available, otherwise decrement locally
