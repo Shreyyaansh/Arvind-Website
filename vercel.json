@@ -6,6 +6,6 @@
     { "source": "/js/(.*)", "destination": "/frontend/js/$1" },
     { "source": "/images/(.*)", "destination": "/frontend/images/$1" },
     { "source": "/", "destination": "/frontend/index.html" },
-    { "source": "/(?!api/.*)(.*)", "destination": "/frontend/index.html" }
+    { "source": "/(.*)", "destination": "/frontend/index.html" }
   ]
 }
