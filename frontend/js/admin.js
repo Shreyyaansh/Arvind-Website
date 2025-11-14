@@ -7,26 +7,157 @@ const ADMIN_PASSWORD = (window && window.ADMIN_PASSWORD);
 let adminAuthenticated = false;
 let adminToken = null;
 
-// Get API_BASE from script.js (made globally available)
-const API_BASE = (window && window.API_BASE) || ((window && window.__API_BASE__) || '');
+// Get API_BASE from script.js (made globally available via window.API_BASE)
+// Helper function to get API_BASE safely
+function getApiBase() {
+    return (window && window.API_BASE) || (window && window.__API_BASE__) || '';
+}
 
-const adminPanel = document.getElementById('adminPanel');
-const adminPasswordModal = document.getElementById('adminPasswordModal');
-const adminContent = document.getElementById('adminContent');
-const adminPasswordInput = document.getElementById('adminPassword');
-const adminPasswordSubmit = document.getElementById('adminPasswordSubmit');
-const adminPasswordCancel = document.getElementById('adminPasswordCancel');
-const adminPasswordError = document.getElementById('adminPasswordError');
-const adminCloseBtn = document.getElementById('adminCloseBtn');
-const adminProducts = document.getElementById('adminProducts');
+// Wait for DOM to be ready
+let adminPanel, adminPasswordModal, adminContent, adminPasswordInput, adminPasswordSubmit, adminPasswordCancel, adminPasswordError, adminCloseBtn, adminProducts;
 
-// Keyboard shortcut: Ctrl+Shift+A
+// Global keyboard shortcut listener (works even if initialization hasn't completed)
 document.addEventListener('keydown', (e) => {
-    if (e.ctrlKey && e.shiftKey && e.key === 'A') {
-        e.preventDefault();
-        openAdminPanel();
+    // Don't trigger if user is typing in an input field
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
+        return;
     }
-});
+    
+    // Check for Ctrl+Alt+A or Cmd+Option+A (Mac)
+    const isModifierPressed = (e.ctrlKey || e.metaKey) && e.altKey;
+    const isAKey = e.key === 'A' || e.key === 'a' || e.keyCode === 65 || e.which === 65;
+    
+    if (isModifierPressed && isAKey) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        
+        console.log('🔑 Admin shortcut detected: Ctrl+Alt+A');
+        
+        // If admin panel not initialized, initialize it first
+        if (!adminPanel) {
+            console.log('Initializing admin panel...');
+            initializeAdmin();
+            setTimeout(() => {
+                if (adminPanel) {
+                    openAdminPanel();
+                } else {
+                    console.error('❌ Admin panel still not available. Check browser console for errors.');
+                }
+            }, 200);
+        } else {
+            openAdminPanel();
+        }
+    }
+}, true);
+
+function initAdminPanel() {
+    adminPanel = document.getElementById('adminPanel');
+    adminPasswordModal = document.getElementById('adminPasswordModal');
+    adminContent = document.getElementById('adminContent');
+    adminPasswordInput = document.getElementById('adminPassword');
+    adminPasswordSubmit = document.getElementById('adminPasswordSubmit');
+    adminPasswordCancel = document.getElementById('adminPasswordCancel');
+    adminPasswordError = document.getElementById('adminPasswordError');
+    adminCloseBtn = document.getElementById('adminCloseBtn');
+    adminProducts = document.getElementById('adminProducts');
+
+    if (!adminPanel) {
+        console.error('Admin panel elements not found');
+        return;
+    }
+
+    // Keyboard shortcut: Ctrl+Alt+A (or Cmd+Option+A on Mac)
+    // Use capture phase to ensure we catch it early
+    document.addEventListener('keydown', handleKeyboardShortcut, true);
+    
+    // Setup event listeners
+    setupEventListeners();
+    
+    console.log('✅ Admin panel initialized successfully!');
+    console.log('📌 Press Ctrl+Alt+A (or Cmd+Option+A on Mac) to open the admin panel.');
+    
+    // Test if elements are found
+    if (adminPanel && adminPasswordModal && adminContent) {
+        console.log('✅ All admin panel elements found');
+    } else {
+        console.error('❌ Some admin panel elements are missing:', {
+            adminPanel: !!adminPanel,
+            adminPasswordModal: !!adminPasswordModal,
+            adminContent: !!adminContent
+        });
+    }
+}
+
+function handleKeyboardShortcut(e) {
+    // Don't trigger if user is typing in an input field
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
+        return;
+    }
+    
+    // Check for Ctrl+Alt+A or Cmd+Option+A (Mac)
+    const isModifierPressed = (e.ctrlKey || e.metaKey) && e.altKey;
+    const isAKey = e.key === 'A' || e.key === 'a' || e.keyCode === 65 || e.which === 65;
+    
+    if (isModifierPressed && isAKey) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        
+        // Debug log
+        console.log('Admin shortcut triggered!');
+        
+        if (!adminPanel) {
+            console.warn('Admin panel not initialized, attempting to initialize...');
+            initializeAdmin();
+            // Try again after initialization
+            setTimeout(() => {
+                if (adminPanel) {
+                    openAdminPanel();
+                } else {
+                    console.error('Admin panel still not available after initialization');
+                }
+            }, 100);
+        } else {
+            openAdminPanel();
+        }
+    }
+}
+
+function setupEventListeners() {
+    // Password submission
+    adminPasswordSubmit.addEventListener('click', () => {
+        if (!ADMIN_PASSWORD) {
+            adminPasswordError.textContent = 'Admin password not configured';
+            return;
+        }
+        const password = adminPasswordInput.value;
+        if (password === ADMIN_PASSWORD) {
+            adminAuthenticated = true;
+            adminToken = btoa(password + Date.now()); // Simple token generation
+            adminPasswordModal.style.display = 'none';
+            adminContent.style.display = 'flex';
+            loadAdminProducts();
+        } else {
+            adminPasswordError.textContent = 'Incorrect password';
+            adminPasswordInput.value = '';
+            adminPasswordInput.focus();
+        }
+    });
+
+    // Cancel password
+    adminPasswordCancel.addEventListener('click', closeAdminPanel);
+
+    // Close button
+    adminCloseBtn.addEventListener('click', closeAdminPanel);
+
+    // Close on escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && adminPanel.classList.contains('active')) {
+            closeAdminPanel();
+        }
+    });
+}
 
 // Open admin panel
 function openAdminPanel() {
@@ -49,36 +180,36 @@ function closeAdminPanel() {
     adminPasswordError.textContent = '';
 }
 
-// Password submission
-adminPasswordSubmit.addEventListener('click', () => {
-    if (!ADMIN_PASSWORD) {
-        adminPasswordError.textContent = 'Admin password not configured';
-        return;
+// Initialize admin panel when DOM is ready
+// Use multiple methods to ensure it initializes
+function initializeAdmin() {
+    try {
+        initAdminPanel();
+    } catch (error) {
+        console.error('Error initializing admin panel:', error);
+        // Retry after a short delay
+        setTimeout(() => {
+            try {
+                initAdminPanel();
+            } catch (e) {
+                console.error('Failed to initialize admin panel after retry:', e);
+            }
+        }, 100);
     }
-    const password = adminPasswordInput.value;
-    if (password === ADMIN_PASSWORD) {
-        adminAuthenticated = true;
-        adminToken = btoa(password + Date.now()); // Simple token generation
-        adminPasswordModal.style.display = 'none';
-        adminContent.style.display = 'flex';
-        loadAdminProducts();
-    } else {
-        adminPasswordError.textContent = 'Incorrect password';
-        adminPasswordInput.value = '';
-        adminPasswordInput.focus();
-    }
-});
+}
 
-// Cancel password
-adminPasswordCancel.addEventListener('click', closeAdminPanel);
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeAdmin);
+} else {
+    // DOM already loaded, but wait a bit to ensure all scripts are ready
+    setTimeout(initializeAdmin, 50);
+}
 
-// Close button
-adminCloseBtn.addEventListener('click', closeAdminPanel);
-
-// Close on escape key
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && adminPanel.classList.contains('active')) {
-        closeAdminPanel();
+// Also try on window load as a fallback
+window.addEventListener('load', () => {
+    if (!adminPanel) {
+        console.warn('Admin panel not initialized, retrying...');
+        initializeAdmin();
     }
 });
 
@@ -86,7 +217,7 @@ document.addEventListener('keydown', (e) => {
 async function loadAdminProducts() {
     try {
         adminProducts.innerHTML = '<p>Loading products...</p>';
-        const res = await fetch(`${API_BASE}/api/admin/products`, {
+        const res = await fetch(`${getApiBase()}/api/admin/products`, {
             headers: {
                 'Authorization': `Bearer ${adminToken}`
             }
@@ -179,7 +310,7 @@ function renderAdminProducts(products) {
             statusSpan.textContent = '';
             
             try {
-                const res = await fetch(`${API_BASE}/api/admin/products/${productId}/variants`, {
+                const res = await fetch(`${getApiBase()}/api/admin/products/${productId}/variants`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',

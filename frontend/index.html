@@ -108,7 +108,20 @@
     </div>
 
     <!-- config.js is auto-generated at build time with API_BASE and ADMIN_PASSWORD -->
-    <script src="config.js" onerror="window.__API_BASE__ = window.__API_BASE__ || '';"></script>
+    <!-- For local development, config.js may not exist - that's okay -->
+    <script>
+        // Set defaults first (for local dev when config.js doesn't exist)
+        if (typeof window.__API_BASE__ === 'undefined') {
+            window.__API_BASE__ = '';
+        }
+        if (typeof window.ADMIN_PASSWORD === 'undefined') {
+            // For local development, set a default password
+            // In production, this will be set by config.js from environment variable
+            window.ADMIN_PASSWORD = 'yoyo123';
+            console.log('Using default admin password for local development');
+        }
+    </script>
+    <script src="config.js" onerror="console.log('config.js not found - using defaults for local development');"></script>
     <script src="js/script.js"></script>
     <script src="js/admin.js"></script>
 </body>
